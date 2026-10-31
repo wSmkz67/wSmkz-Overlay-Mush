@@ -6,7 +6,7 @@ import net.minecraft.command.*;
 public class Cmd extends CommandBase {
     @Override public String getCommandName() { return "smkz"; }
     @Override public List<String> getCommandAliases() { return Arrays.asList("Smkz", "SMKZ", "ov", "smkzoverlay"); }
-    @Override public String getCommandUsage(ICommandSender s) { return "/smkz <menu|bl|watch|ws|mode|hud|sound|clear|debug>"; }
+    @Override public String getCommandUsage(ICommandSender s) { return "/smkz <menu|cores|bl|watch|ignore|ws|mode|hud|sound|times|npc|clear|debug>"; }
     @Override public int getRequiredPermissionLevel() { return 0; }
     @Override public boolean canCommandSenderUseCommand(ICommandSender s) { return true; }
 
@@ -48,6 +48,28 @@ public class Cmd extends CommandBase {
             if (a[1].equalsIgnoreCase("auto")) { o.modeOverride = null; o.msg("\u00a7aModo: autom\u00e1tico"); }
             else if (o.cfg.find(a[1]) != null) { o.modeOverride = o.cfg.find(a[1]).id; o.msg("\u00a7aModo fixado: \u00a7f" + o.modeOverride); }
             else o.msg("\u00a7cModo desconhecido. Dispon\u00edveis: " + o.modeIds());
+        } else if (c.equals("ignore")) {
+            String sub = a.length > 1 ? a[1].toLowerCase() : "list";
+            if (sub.equals("list")) {
+                if (o.lists.ignore.isEmpty()) o.msg("\u00a77Nenhum jogador ignorado.");
+                for (ListStore.Entry e : o.lists.ignore.values()) o.msg("\u00a7f" + e.name + " \u00a78(" + e.date + ")");
+            } else if (sub.equals("add") && a.length > 2) {
+                o.lists.addIgnore(a[2]);
+                o.present.remove(a[2].toLowerCase());
+                o.msg("\u00a7aIgnorando: \u00a7f" + a[2]);
+            } else if (sub.equals("remove") && a.length > 2) {
+                o.msg(o.lists.removeIgnore(a[2]) ? "\u00a7aVoltou a aparecer: \u00a7f" + a[2] : "\u00a7cEsse nick n\u00e3o estava ignorado.");
+            } else {
+                o.msg("\u00a77Uso: /smkz ignore <add|remove|list> [nick]");
+            }
+        } else if (c.equals("times")) {
+            o.cfg.teams = !o.cfg.teams; o.cfg.save();
+            o.msg("Separar por times " + (o.cfg.teams ? "\u00a7aligado" : "\u00a7cdesligado"));
+        } else if (c.equals("npc")) {
+            o.cfg.npcPing = !o.cfg.npcPing; o.cfg.save();
+            o.msg("Filtro autom\u00e1tico de NPCs (sem ping) " + (o.cfg.npcPing ? "\u00a7aligado" : "\u00a7cdesligado"));
+        } else if (c.equals("cores") || c.equals("cor")) {
+            o.openTheme = true;
         } else if (c.equals("hud")) {
             o.cfg.hud = !o.cfg.hud; o.cfg.save();
             o.msg("HUD " + (o.cfg.hud ? "\u00a7aligado" : "\u00a7cdesligado"));

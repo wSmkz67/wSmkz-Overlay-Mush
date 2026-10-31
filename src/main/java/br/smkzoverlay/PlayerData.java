@@ -12,6 +12,7 @@ public class PlayerData {
     public long firstLogin, lastLogin, fetched;
     private final Map<String, Double> memo = new HashMap<>();
     private final Map<String, JsonObject> modeObjs = new HashMap<>();
+    private final Map<String, String> badges = new HashMap<>();
 
     public PlayerData(String name) { this.name = name; }
 
@@ -40,6 +41,24 @@ public class PlayerData {
     }
 
     public boolean hasMode(Config.Mode m) { return root != null && modeObj(m) != null; }
+
+    /** Texto do badge de nivel como o MushMC mostra (ex: "&4[117&l\u2764&4]"), vindo do campo <nivel>_badge.format da API. */
+    public String badgeFormat(Config.Mode m, String levelKey) {
+        if (root == null || levelKey == null) return null;
+        String k = m.id + "|" + levelKey;
+        if (badges.containsKey(k)) return badges.get(k);
+        String out = null;
+        JsonObject mo = modeObj(m);
+        if (mo != null) {
+            JsonElement b = Json.find(mo, levelKey + "_badge", true);
+            if (b != null) {
+                JsonElement f = b.getAsJsonObject().get("format");
+                if (f != null && f.isJsonPrimitive()) out = f.getAsString();
+            }
+        }
+        badges.put(k, out);
+        return out;
+    }
 
     public double stat(Config.Mode m, String key) { return stat(m, key, false); }
 

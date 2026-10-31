@@ -44,7 +44,7 @@ public class Snipe {
         else if (seen == 2) r.add(25, "visto em 2 partidas suas nas \u00faltimas 3h");
         if (d != null && d.loaded) {
             if (d.notFound) {
-                r.add(10, "sem dados na API (nick/conta oculta?)");
+                r.add(10, "nick: sem registro na API");
             } else {
                 if (d.firstLogin > 0) {
                     long days = (System.currentTimeMillis() - d.firstLogin) / 86400000L;

@@ -8,9 +8,9 @@ import java.util.*;
 /** Blacklist (snipers conhecidos) e lista de interesse, salvas em JSON local. */
 public class ListStore {
     public static class Entry { public String name, reason = "", date = ""; }
-    private static class Data { Map<String, Entry> black = new LinkedHashMap<>(), watch = new LinkedHashMap<>(); }
+    private static class Data { Map<String, Entry> black = new LinkedHashMap<>(), watch = new LinkedHashMap<>(), ignore = new LinkedHashMap<>(); }
 
-    public Map<String, Entry> black = new LinkedHashMap<>(), watch = new LinkedHashMap<>();
+    public Map<String, Entry> black = new LinkedHashMap<>(), watch = new LinkedHashMap<>(), ignore = new LinkedHashMap<>();
     private final File f;
 
     public ListStore(File f) {
@@ -20,7 +20,7 @@ public class ListStore {
                 Reader r = new InputStreamReader(new FileInputStream(f), "UTF-8");
                 Data d = Config.G.fromJson(r, Data.class);
                 r.close();
-                if (d != null) { if (d.black != null) black = d.black; if (d.watch != null) watch = d.watch; }
+                if (d != null) { if (d.black != null) black = d.black; if (d.watch != null) watch = d.watch; if (d.ignore != null) ignore = d.ignore; }
             }
         } catch (Exception e) { e.printStackTrace(); }
     }
@@ -48,9 +48,25 @@ public class ListStore {
         return true;
     }
 
+    public boolean isIgnored(String name) { return ignore.containsKey(name.toLowerCase()); }
+
+    public void addIgnore(String name) {
+        Entry e = new Entry();
+        e.name = name;
+        e.date = new SimpleDateFormat("dd/MM/yyyy").format(new Date());
+        ignore.put(name.toLowerCase(), e);
+        save();
+    }
+
+    public boolean removeIgnore(String name) {
+        boolean r = ignore.remove(name.toLowerCase()) != null;
+        save();
+        return r;
+    }
+
     private void save() {
         try {
-            Data d = new Data(); d.black = black; d.watch = watch;
+            Data d = new Data(); d.black = black; d.watch = watch; d.ignore = ignore;
             Writer w = new OutputStreamWriter(new FileOutputStream(f), "UTF-8");
             Config.G.toJson(d, w);
             w.close();

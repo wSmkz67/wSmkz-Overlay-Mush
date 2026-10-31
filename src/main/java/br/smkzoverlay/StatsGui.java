@@ -13,7 +13,7 @@ public class StatsGui extends GuiScreen {
     private int[] cwid = new int[0];
     private int scroll;
     private String sel;
-    private SmkzButton bMode, bBl, bWatch, bClose, bTheme;
+    private SmkzButton bMode, bBl, bWatch, bIgnore, bClose, bTheme;
     private List<Rows.Row> rows = new ArrayList<>();
 
     /** Calcula largura do painel e posicao das colunas conforme o modo e o tamanho da tela. */
@@ -51,13 +51,19 @@ public class StatsGui extends GuiScreen {
         Config.Mode cm = SmkzOverlay.I.curMode();
         bTheme.xPosition = px + W - (fontRendererObj.getStringWidth(cm.name) + 14) - 8 - 50;
         bTheme.yPosition = py + 7;
-        int bw = (W - 16 - 12) / 4;
-        SmkzButton[] bs = {bMode, bBl, bWatch, bClose};
+        int bw = (W - 16 - 16) / 5;
+        SmkzButton[] bs = {bMode, bBl, bWatch, bIgnore, bClose};
         for (int i = 0; i < bs.length; i++) {
             bs[i].xPosition = px + 8 + i * (bw + 4);
             bs[i].yPosition = by;
             bs[i].width = bw;
         }
+    }
+
+    private int players() {
+        int n = 0;
+        for (Rows.Row r : rows) if (!r.header) n++;
+        return n;
     }
 
     private int vis() { return Math.max(1, (dy - 4 - ry) / RH); }
@@ -74,11 +80,13 @@ public class StatsGui extends GuiScreen {
         bMode = new SmkzButton(0, 0, 0, 80, 20, "");
         bBl = new SmkzButton(1, 0, 0, 80, 20, "");
         bWatch = new SmkzButton(2, 0, 0, 80, 20, "");
+        bIgnore = new SmkzButton(5, 0, 0, 80, 20, "Ignorar");
         bClose = new SmkzButton(3, 0, 0, 80, 20, "Fechar");
         bTheme = new SmkzButton(4, 0, 0, 44, 14, "Cores");
         buttonList.add(bMode);
         buttonList.add(bBl);
         buttonList.add(bWatch);
+        buttonList.add(bIgnore);
         buttonList.add(bClose);
         buttonList.add(bTheme);
         placeButtons();
@@ -124,7 +132,7 @@ public class StatsGui extends GuiScreen {
         drawGradientRect(px, py, px + W, py + 28, Theme.dark(Theme.a1(), 0.35f), Theme.dark(Theme.a1(), 0.75f));
         drawRect(px, py + 28, px + W, py + 30, Theme.a2());
         Theme.title(fontRendererObj, px + 10, py + 6);
-        drawString(fontRendererObj, "\u00a77" + rows.size() + " jogadores na partida", px + 10, py + 17, 0xFFFFFF);
+        drawString(fontRendererObj, "\u00a77" + players() + " jogadores na partida", px + 10, py + 17, 0xFFFFFF);
         int bwid = fontRendererObj.getStringWidth(m.name) + 14;
         box(px + W - bwid - 8, py + 7, px + W - 8, py + 21, Theme.dark(Theme.a1(), 0.8f), Theme.a2());
         drawCenteredString(fontRendererObj, m.name, px + W - 8 - bwid / 2, py + 11, Theme.a2());
@@ -143,7 +151,14 @@ public class StatsGui extends GuiScreen {
         for (int i = 0; i < vis && scroll + i < rows.size(); i++) {
             Rows.Row r = rows.get(scroll + i);
             int y = ry + i * RH;
-            int sc = r.res.color();
+            if (r.header) {   // cabecalho do time
+                int rgb = Utils.rgbOf(r.teamColor);
+                drawRect(px + 6, y, right, y + RH - 1, Theme.alpha(rgb, 0x38));
+                drawRect(px + 6, y, px + 9, y + RH - 1, 0xFF000000 | rgb);
+                drawString(fontRendererObj, r.headerText, px + 14, y + 4, 0xFFFFFF);
+                continue;
+            }
+            int sc = r.pillColor();
             boolean hov = mx >= px + 6 && mx < right && my >= y && my < y + RH - 1;
             if (i % 2 == 0) drawRect(px + 6, y, right, y + RH - 1, 0x22FFFFFF);
             if (hov) drawRect(px + 6, y, right, y + RH - 1, 0x33FFFFFF);
@@ -153,11 +168,14 @@ public class StatsGui extends GuiScreen {
             }
             drawRect(px + 6, y, px + 9, y + RH - 1, sc);
             head(r, px + 14, y + 2, 12, 0xFF000000);
-            drawString(fontRendererObj, r.color + r.name, px + 32, y + 4, 0xFFFFFF);
-            pill(r.res.pill(), sc, px + pillX, y + 2);
+            drawString(fontRendererObj, r.nameStr(), px + 32, y + 4, 0xFFFFFF);
+            pill(r.pill(), sc, px + pillX, y + 2);
             for (int c = 0; c < m.cols.size(); c++) {
                 String t = Rows.colText(r.d, m, m.cols.get(c));
-                drawString(fontRendererObj, t, colX(c) + cwid[c] - fontRendererObj.getStringWidth(t), y + 4, 0xFFFFFF);
+                int tw = fontRendererObj.getStringWidth(t), tx = colX(c) + cwid[c] - tw;
+                int bg = Rows.cellBg(r.d, m, m.cols.get(c));
+                if (bg != 0) drawRect(tx - 2, y + 1, tx + tw + 2, y + RH - 2, bg);
+                drawString(fontRendererObj, t, tx, y + 4, 0xFFFFFF);
             }
         }
         if (rows.size() > vis) {
@@ -173,10 +191,10 @@ public class StatsGui extends GuiScreen {
         if (s == null) {
             drawCenteredString(fontRendererObj, "\u00a77Clique em um jogador para ver os detalhes \u00a78| \u00a77role para ver mais", px + W / 2, dy + 22, 0xFFFFFF);
         } else {
-            int sc = s.res.color();
+            int sc = s.pillColor();
             head(s, px + 13, dy + 5, 22, sc);
-            drawString(fontRendererObj, "\u00a7l" + s.color + s.name, px + 42, dy + 4, 0xFFFFFF);
-            pill(s.res.pill(), sc, px + 50 + fontRendererObj.getStringWidth("\u00a7l" + s.name), dy + 3);
+            drawString(fontRendererObj, "\u00a7l" + s.color + (s.nicked ? "\u00a7o" : "") + s.name, px + 42, dy + 4, 0xFFFFFF);
+            pill(s.pill(), sc, px + 50 + fontRendererObj.getStringWidth("\u00a7l" + s.name), dy + 3);
             drawString(fontRendererObj, "\u00a77Suspeita", px + 42, dy + 15, 0xFFFFFF);
             drawRect(px + 90, dy + 16, px + 210, dy + 22, 0xFF2A2A3A);
             drawRect(px + 90, dy + 16, px + 90 + 120 * s.res.score / 100, dy + 22, sc);
@@ -196,7 +214,7 @@ public class StatsGui extends GuiScreen {
         }
 
         bMode.displayString = fontRendererObj.trimStringToWidth("Modo: " + m.name, bMode.width - 8);
-        bBl.enabled = bWatch.enabled = sel != null;
+        bBl.enabled = bWatch.enabled = bIgnore.enabled = sel != null;
         bBl.displayString = sel != null && o.lists.has(true, sel) ? "- Blacklist" : "+ Blacklist";
         bWatch.displayString = sel != null && o.lists.has(false, sel) ? "- Interesse" : "+ Interesse";
         super.drawScreen(mx, my, pt);
@@ -209,6 +227,7 @@ public class StatsGui extends GuiScreen {
         if (b.id == 0) o.cycleMode();
         else if (b.id == 1 && s != null) o.lists.toggle(true, s.name);
         else if (b.id == 2 && s != null) o.lists.toggle(false, s.name);
+        else if (b.id == 5 && s != null) { o.lists.addIgnore(s.name); o.present.remove(s.lname); sel = null; }
         else if (b.id == 3) mc.displayGuiScreen(null);
         else if (b.id == 4) mc.displayGuiScreen(new ThemeGui(this));
     }
@@ -219,7 +238,7 @@ public class StatsGui extends GuiScreen {
         layout();
         if (btn == 0 && mx >= px + 6 && mx <= px + W - 6 && my >= ry && my < ry + vis() * RH) {
             int idx = scroll + (my - ry) / RH;
-            if (idx >= 0 && idx < rows.size()) sel = rows.get(idx).lname;
+            if (idx >= 0 && idx < rows.size() && !rows.get(idx).header) sel = rows.get(idx).lname;
         }
     }
 

@@ -9,6 +9,7 @@ public class Config {
     public int requestDelayMs = 350, maxPlayers = 40, maxRows = 12, cacheMinutes = 15, hudX = 4, hudY = 4;
     public boolean hud = true, sound = true;
     public float hudScale = 0.85f;
+    public boolean teams = true, npcPing = true; // separar times; esconder NPCs sem ping
     public int accent = 0xFF8B5CF6, accent2 = 0xFF22D3EE; // cores do tema (ARGB)
     public String defaultMode = "bedwars";
     public int version = 0;
