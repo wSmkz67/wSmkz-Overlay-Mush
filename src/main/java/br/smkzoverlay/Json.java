@@ -40,7 +40,7 @@ public class Json {
         if (e == null || !e.isJsonObject()) return "-";
         StringBuilder sb = new StringBuilder();
         int n = 0;
-        for (String k : e.getAsJsonObject().keySet()) { if (n++ > 0) sb.append(", "); sb.append(k); if (n >= 18) { sb.append("..."); break; } }
+   for (Map.Entry<String, JsonElement> en : e.getAsJsonObject().entrySet()) { if (n++ > 0) sb.append(", "); sb.append(en.getKey()); if (n >= 18) { sb.append("..."); break; } }
         return sb.toString();
     }
 }
