@@ -4,9 +4,9 @@ import java.util.*;
 import net.minecraft.command.*;
 
 public class Cmd extends CommandBase {
-    @Override public String getCommandName() { return "ov"; }
-    @Override public List<String> getCommandAliases() { return Arrays.asList("smkzoverlay"); }
-    @Override public String getCommandUsage(ICommandSender s) { return "/ov <menu|bl|watch|ws|mode|hud|sound|clear|debug>"; }
+    @Override public String getCommandName() { return "smkz"; }
+    @Override public List<String> getCommandAliases() { return Arrays.asList("Smkz", "SMKZ", "ov", "smkzoverlay"); }
+    @Override public String getCommandUsage(ICommandSender s) { return "/smkz <menu|bl|watch|ws|mode|hud|sound|clear|debug>"; }
     @Override public int getRequiredPermissionLevel() { return 0; }
     @Override public boolean canCommandSenderUseCommand(ICommandSender s) { return true; }
 
@@ -35,16 +35,16 @@ public class Cmd extends CommandBase {
             } else if (sub.equals("remove") && a.length > 2) {
                 o.msg(o.lists.remove(bl, a[2]) ? "\u00a7aRemovido: \u00a7f" + a[2] : "\u00a7cEsse nick n\u00e3o estava na lista.");
             } else {
-                o.msg("\u00a77Uso: /ov " + c + " <add|remove|list> [nick] [motivo]");
+                o.msg("\u00a77Uso: /smkz " + c + " <add|remove|list> [nick] [motivo]");
             }
         } else if (c.equals("ws")) {
             Config.Mode m = a.length > 2 ? o.cfg.find(a[1]) : null;
-            if (m == null) { o.msg("\u00a77Uso: /ov ws <modo> <valor>  (0 desliga). Modos: " + o.modeIds()); return; }
+            if (m == null) { o.msg("\u00a77Uso: /smkz ws <modo> <valor>  (0 desliga). Modos: " + o.modeIds()); return; }
             try { m.wsAlert = Integer.parseInt(a[2]); } catch (NumberFormatException e) { o.msg("\u00a7cValor inv\u00e1lido."); return; }
             o.cfg.save();
             o.msg("\u00a7aAlerta de winstreak em \u00a7f" + m.name + "\u00a7a: \u00a7f" + m.wsAlert);
         } else if (c.equals("mode")) {
-            if (a.length < 2) { o.msg("\u00a77Uso: /ov mode <auto|" + o.modeIds() + ">"); return; }
+            if (a.length < 2) { o.msg("\u00a77Uso: /smkz mode <auto|" + o.modeIds() + ">"); return; }
             if (a[1].equalsIgnoreCase("auto")) { o.modeOverride = null; o.msg("\u00a7aModo: autom\u00e1tico"); }
             else if (o.cfg.find(a[1]) != null) { o.modeOverride = o.cfg.find(a[1]).id; o.msg("\u00a7aModo fixado: \u00a7f" + o.modeOverride); }
             else o.msg("\u00a7cModo desconhecido. Dispon\u00edveis: " + o.modeIds());
