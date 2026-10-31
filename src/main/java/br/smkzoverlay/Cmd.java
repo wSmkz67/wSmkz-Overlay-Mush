@@ -39,17 +39,14 @@ public class Cmd extends CommandBase {
                         o.msg("\u00a7f" + e.name + (e.reason.isEmpty() ? "" : " \u00a77- " + e.reason) + " \u00a78(" + e.date + ")");
                     idx++;
                 }
-            } else if (bl && sub.equals("import")) {
-                int n = o.lists.importBlack(ListStore.readBundled(), "sniper (lista inicial)");
-                o.msg("\u00a7aLista inicial: \u00a7f" + n + " \u00a7anicks novos adicionados \u00a77(total: " + o.lists.black.size() + ")");
             } else if (sub.equals("add") && a.length > 2) {
                 o.lists.add(bl, a[2], join(a, 3));
                 o.msg("\u00a7aAdicionado: \u00a7f" + a[2]);
             } else if (sub.equals("remove") && a.length > 2) {
                 o.msg(o.lists.remove(bl, a[2]) ? "\u00a7aRemovido: \u00a7f" + a[2] : "\u00a7cEsse nick n\u00e3o estava na lista.");
             } else {
-                o.msg("\u00a77Uso: /smkz " + c + " <add|remove|list|import> [nick] [motivo]");
-            }
+    o.msg("\u00a77Uso: /smkz " + c + " <add|remove|list> [nick] [motivo]");
+}
         } else if (c.equals("ws")) {
             Config.Mode m = a.length > 2 ? o.cfg.find(a[1]) : null;
             if (m == null) { o.msg("\u00a77Uso: /smkz ws <modo> <valor>  (0 desliga). Modos: " + o.modeIds()); return; }
@@ -70,7 +67,6 @@ public class Cmd extends CommandBase {
                 "\u00a7f/smkz bl add <nick> [motivo] \u00a77adiciona \u00e0 blacklist",
                 "\u00a7f/smkz bl remove <nick> \u00a77remove da blacklist",
                 "\u00a7f/smkz bl list [p\u00e1gina] \u00a77mostra a blacklist",
-                "\u00a7f/smkz bl import \u00a77recarrega a lista inicial de snipers",
                 "\u00a7f/smkz watch add|remove|list <nick> \u00a77lista de interesse",
                 "\u00a7f/smkz ignore add|remove|list <nick> \u00a77esconde NPCs/jogadores",
                 "\u00a7f/smkz qb learn \u00a77aprende a quickbuy dos snipers da blacklist (segundo plano)",
