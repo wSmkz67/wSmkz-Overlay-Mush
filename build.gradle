@@ -27,10 +27,10 @@ loom {
 }
 
 repositories {
-    mavenCentral()
-    maven { url = "https://repo.spongepowered.org/maven/" }
-}
-
+       mavenCentral()
+       maven { url = "https://maven.minecraftforge.net/" }
+       maven { url = "https://repo.spongepowered.org/maven/" }
+   }
 dependencies {
     minecraft "com.mojang:minecraft:1.8.9"
     mappings "de.oceanlabs.mcp:mcp_stable:22-1.8.9"
