@@ -9,6 +9,7 @@ public class Config {
     public int requestDelayMs = 350, maxPlayers = 40, maxRows = 12, cacheMinutes = 15, hudX = 4, hudY = 4;
     public boolean hud = true, sound = true;
     public float hudScale = 0.85f;
+    public int accent = 0xFF8B5CF6, accent2 = 0xFF22D3EE; // cores do tema (ARGB)
     public String defaultMode = "bedwars";
     public int version = 0;
     public List<Mode> modes = new ArrayList<>();
@@ -67,6 +68,8 @@ public class Config {
             new Col("FKDR", "final_kills", "final_deaths", 3, 6),
             new Col("WS", "winstreak", "", 10, 25),
             new Col("Wins", "wins", "", 0, 0),
+            new Col("Derrotas", "losses", "", 0, 0),
+            new Col("WLR", "wins", "losses", 1.5, 3),
             new Col("Camas", "beds_broken", "", 0, 0)};
         Mode bw = mode("bedwars", "Bed Wars", "bedwars", "", "", 15, new String[]{"bed wars", "bedwars"}, bwc);
         // variacoes primeiro: a deteccao usa o primeiro modo que combinar
@@ -87,6 +90,8 @@ public class Config {
             new Col("KDR", "kills", "deaths", 1.5, 3),
             new Col("WS", "winstreak", "", 5, 15),
             new Col("Wins", "wins", "", 0, 0),
+            new Col("Derrotas", "losses", "", 0, 0),
+            new Col("WLR", "wins", "losses", 1.5, 3),
             new Col("Camas", "beds_broken", "", 0, 0)};
         Mode bf = mode("bedfight", "Bed Fight", "duels", "bed_fight", "", 10, new String[]{"bed fight", "bedfight"}, bfc);
         l.add(variant(bf, "bedfight_solo", "Bed Fight Solo", "bed_fight_solo", "", "solo"));
@@ -99,6 +104,8 @@ public class Config {
             new Col("KDR", "kills", "deaths", 1.5, 3),
             new Col("WS", "winstreak", "", 4, 10),
             new Col("Wins", "wins", "", 0, 0),
+            new Col("Derrotas", "losses", "", 0, 0),
+            new Col("WLR", "wins", "losses", 1.5, 3),
             new Col("Pontos", "points", "", 0, 0)};
         Mode br = mode("bridge", "The Bridge", "duels", "bridge", "", 8, new String[]{"the bridge", "bridge"}, brc);
         l.add(variant(br, "bridge_solo", "Bridge Solo", "bridge_solo", "", "solo"));
@@ -111,6 +118,8 @@ public class Config {
             new Col("KDR", "kills", "deaths", 1.5, 3),
             new Col("WS", "winstreak", "", 4, 10),
             new Col("Wins", "wins", "", 0, 0),
+            new Col("Derrotas", "losses", "", 0, 0),
+            new Col("WLR", "wins", "losses", 1.5, 3),
             new Col("Jogos", "games_played", "", 0, 0)};
         Mode sw = mode("skywars", "Sky Wars", "skywars_r1", "", "", 6, new String[]{"sky wars", "skywars"}, swc);
         l.add(variant(sw, "sw_solo", "SW Solo", "", "solo", "solo"));
@@ -135,7 +144,7 @@ public class Config {
             }
         } catch (Exception e) { e.printStackTrace(); }
         if (c == null) c = new Config();
-        if (c.version < 3) { c.modes = new ArrayList<>(); c.version = 3; } // formato novo: redefine os modos
+        if (c.version < 4) { c.modes = new ArrayList<>(); c.version = 4; } // formato novo: redefine os modos
         if (c.modes == null) c.modes = new ArrayList<>();
         for (Mode d : defaults()) if (c.find(d.id) == null) c.modes.add(d);
         for (Mode m : c.modes) {

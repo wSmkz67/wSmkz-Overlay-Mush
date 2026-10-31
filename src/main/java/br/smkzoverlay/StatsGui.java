@@ -8,17 +8,56 @@ import net.minecraft.client.renderer.GlStateManager;
 import org.lwjgl.input.Mouse;
 
 public class StatsGui extends GuiScreen {
-    private static final int W = 380, RH = 18;
-    private static final int ACC = 0xFF8B5CF6, ACC2 = 0xFF22D3EE;
+    private static final int RH = 16;
+    private int W = 380, px, py, ph, ry, dy, by, left, pillX, pad = 12;
+    private int[] cwid = new int[0];
     private int scroll;
     private String sel;
-    private SmkzButton bMode, bBl, bWatch;
+    private SmkzButton bMode, bBl, bWatch, bClose, bTheme;
     private List<Rows.Row> rows = new ArrayList<>();
-    private int px, py, ph, ry, dy, by;
 
+    /** Calcula largura do painel e posicao das colunas conforme o modo e o tamanho da tela. */
     private void layout() {
-        px = width / 2 - W / 2; py = 10; ph = height - 20;
-        by = py + ph - 26; dy = by - 64; ry = py + 48;
+        Config.Mode m = SmkzOverlay.I.curMode();
+        int nc = m.cols.size();
+        int nameW = 100;
+        int pillZone = fontRendererObj.getStringWidth("\u00a7lSNIPE?") + 8;
+        pillX = 32 + nameW + 4;
+        left = pillX + pillZone + 6;
+        cwid = new int[nc];
+        int sum = 0;
+        for (int c = 0; c < nc; c++) {
+            cwid[c] = Math.max(fontRendererObj.getStringWidth(m.cols.get(c).label.toUpperCase()), 26);
+            sum += cwid[c];
+        }
+        pad = 12;
+        while (pad > 3 && left + 14 + sum + pad * nc > width - 10) pad -= 3;
+        W = Math.max(340, left + 14 + sum + pad * nc);
+        px = Math.max(2, width / 2 - W / 2);
+        py = 10;
+        ph = height - 20;
+        by = py + ph - 26;
+        dy = by - 56;
+        ry = py + 48;
+    }
+
+    private int colX(int c) {
+        int x = px + left;
+        for (int k = 0; k < c; k++) x += cwid[k] + pad;
+        return x;
+    }
+
+    private void placeButtons() {
+        Config.Mode cm = SmkzOverlay.I.curMode();
+        bTheme.xPosition = px + W - (fontRendererObj.getStringWidth(cm.name) + 14) - 8 - 50;
+        bTheme.yPosition = py + 7;
+        int bw = (W - 16 - 12) / 4;
+        SmkzButton[] bs = {bMode, bBl, bWatch, bClose};
+        for (int i = 0; i < bs.length; i++) {
+            bs[i].xPosition = px + 8 + i * (bw + 4);
+            bs[i].yPosition = by;
+            bs[i].width = bw;
+        }
     }
 
     private int vis() { return Math.max(1, (dy - 4 - ry) / RH); }
@@ -32,14 +71,17 @@ public class StatsGui extends GuiScreen {
     public void initGui() {
         layout();
         buttonList.clear();
-        int bw = (W - 16 - 12) / 4;
-        bMode = new SmkzButton(0, px + 8, by, bw, 20, "");
-        bBl = new SmkzButton(1, px + 8 + (bw + 4), by, bw, 20, "");
-        bWatch = new SmkzButton(2, px + 8 + 2 * (bw + 4), by, bw, 20, "");
+        bMode = new SmkzButton(0, 0, 0, 80, 20, "");
+        bBl = new SmkzButton(1, 0, 0, 80, 20, "");
+        bWatch = new SmkzButton(2, 0, 0, 80, 20, "");
+        bClose = new SmkzButton(3, 0, 0, 80, 20, "Fechar");
+        bTheme = new SmkzButton(4, 0, 0, 44, 14, "Cores");
         buttonList.add(bMode);
         buttonList.add(bBl);
         buttonList.add(bWatch);
-        buttonList.add(new SmkzButton(3, px + 8 + 3 * (bw + 4), by, bw, 20, "Fechar"));
+        buttonList.add(bClose);
+        buttonList.add(bTheme);
+        placeButtons();
     }
 
     private Rows.Row byName(String l) {
@@ -61,14 +103,15 @@ public class StatsGui extends GuiScreen {
 
     private void pill(String text, int color, int x, int y) {
         if (text.isEmpty()) return;
-        int w = fontRendererObj.getStringWidth(text) + 8;
+        int w = fontRendererObj.getStringWidth("\u00a7l" + text) + 6;
         drawRect(x, y, x + w, y + 11, color);
-        drawString(fontRendererObj, "\u00a7f\u00a7l" + text, x + 4, y + 2, 0xFFFFFF);
+        drawString(fontRendererObj, "\u00a7f\u00a7l" + text, x + 3, y + 2, 0xFFFFFF);
     }
 
     @Override
     public void drawScreen(int mx, int my, float pt) {
         layout();
+        placeButtons();
         drawGradientRect(0, 0, width, height, 0xC0080810, 0xD01A0C30);
         SmkzOverlay o = SmkzOverlay.I;
         Config.Mode m = o.curMode();
@@ -76,22 +119,23 @@ public class StatsGui extends GuiScreen {
         int vis = vis();
         scroll = Math.max(0, Math.min(scroll, Math.max(0, rows.size() - vis)));
 
-        // painel
-        box(px - 1, py - 1, px + W + 1, py + ph + 1, 0xEC12121F, ACC);
-        drawGradientRect(px, py, px + W, py + 28, 0xFF4B2A9C, 0xFF1D1946);
-        drawRect(px, py + 28, px + W, py + 30, ACC2);
-        drawString(fontRendererObj, "\u00a7b\u00a7lSmkz\u00a7d\u00a7lOverlay", px + 10, py + 6, 0xFFFFFF);
+        // painel + cabecalho
+        box(px - 1, py - 1, px + W + 1, py + ph + 1, 0xEC12121F, Theme.a1());
+        drawGradientRect(px, py, px + W, py + 28, Theme.dark(Theme.a1(), 0.35f), Theme.dark(Theme.a1(), 0.75f));
+        drawRect(px, py + 28, px + W, py + 30, Theme.a2());
+        Theme.title(fontRendererObj, px + 10, py + 6);
         drawString(fontRendererObj, "\u00a77" + rows.size() + " jogadores na partida", px + 10, py + 17, 0xFFFFFF);
         int bwid = fontRendererObj.getStringWidth(m.name) + 14;
-        box(px + W - bwid - 8, py + 7, px + W - 8, py + 21, 0xFF241B4D, ACC2);
-        drawCenteredString(fontRendererObj, "\u00a7b" + m.name, px + W - 8 - bwid / 2, py + 11, 0xFFFFFF);
+        box(px + W - bwid - 8, py + 7, px + W - 8, py + 21, Theme.dark(Theme.a1(), 0.8f), Theme.a2());
+        drawCenteredString(fontRendererObj, m.name, px + W - 8 - bwid / 2, py + 11, Theme.a2());
 
-        // cabe\u00e7alho das colunas
-        int cx = px + 178, cw = (W - 178 - 16) / Math.max(1, m.cols.size());
+        // cabecalho das colunas (valores alinhados a direita)
         drawRect(px + 6, py + 33, px + W - 6, py + 45, 0x55000000);
-        drawString(fontRendererObj, "\u00a73JOGADOR", px + 32, py + 36, 0xFFFFFF);
-        for (int i = 0; i < m.cols.size(); i++)
-            drawString(fontRendererObj, "\u00a73" + m.cols.get(i).label.toUpperCase(), cx + i * cw, py + 36, 0xFFFFFF);
+        drawString(fontRendererObj, "JOGADOR", px + 32, py + 36, Theme.a2());
+        for (int c = 0; c < m.cols.size(); c++) {
+            String lb = m.cols.get(c).label.toUpperCase();
+            drawString(fontRendererObj, lb, colX(c) + cwid[c] - fontRendererObj.getStringWidth(lb), py + 36, Theme.a2());
+        }
 
         // linhas
         if (rows.isEmpty()) drawCenteredString(fontRendererObj, "\u00a77Nenhum jogador detectado ainda...", width / 2, ry + 24, 0xFFFFFF);
@@ -104,38 +148,40 @@ public class StatsGui extends GuiScreen {
             if (i % 2 == 0) drawRect(px + 6, y, right, y + RH - 1, 0x22FFFFFF);
             if (hov) drawRect(px + 6, y, right, y + RH - 1, 0x33FFFFFF);
             if (r.lname.equals(sel)) {
-                drawRect(px + 6, y, right, y + RH - 1, 0x558B5CF6);
-                drawRect(right - 2, y, right, y + RH - 1, ACC2);
+                drawRect(px + 6, y, right, y + RH - 1, Theme.alpha(Theme.a1(), 0x55));
+                drawRect(right - 2, y, right, y + RH - 1, Theme.a2());
             }
             drawRect(px + 6, y, px + 9, y + RH - 1, sc);
-            head(r, px + 14, y + 3, 12, 0xFF000000);
-            drawString(fontRendererObj, r.color + r.name, px + 32, y + 5, 0xFFFFFF);
-            pill(r.res.pill(), sc, px + 132, y + 3);
-            for (int c = 0; c < m.cols.size(); c++)
-                drawString(fontRendererObj, Rows.colText(r.d, m, m.cols.get(c)), cx + c * cw, y + 5, 0xFFFFFF);
+            head(r, px + 14, y + 2, 12, 0xFF000000);
+            drawString(fontRendererObj, r.color + r.name, px + 32, y + 4, 0xFFFFFF);
+            pill(r.res.pill(), sc, px + pillX, y + 2);
+            for (int c = 0; c < m.cols.size(); c++) {
+                String t = Rows.colText(r.d, m, m.cols.get(c));
+                drawString(fontRendererObj, t, colX(c) + cwid[c] - fontRendererObj.getStringWidth(t), y + 4, 0xFFFFFF);
+            }
         }
         if (rows.size() > vis) {
             int track = vis * RH, thumb = Math.max(12, track * vis / rows.size());
             int ty = ry + (track - thumb) * scroll / Math.max(1, rows.size() - vis);
             drawRect(px + W - 11, ry, px + W - 7, ry + track, 0x44FFFFFF);
-            drawRect(px + W - 11, ty, px + W - 7, ty + thumb, ACC);
+            drawRect(px + W - 11, ty, px + W - 7, ty + thumb, Theme.a1());
         }
 
-        // cart\u00e3o de detalhes
-        box(px + 6, dy, px + W - 6, dy + 58, 0xE00C0C18, 0xFF2E2A5A);
+        // cartao de detalhes
+        box(px + 6, dy, px + W - 6, dy + 52, 0xE00C0C18, Theme.dark(Theme.a1(), 0.6f));
         Rows.Row s = byName(sel);
         if (s == null) {
-            drawCenteredString(fontRendererObj, "\u00a77Clique em um jogador para ver os detalhes \u00a78| \u00a77role para ver mais", width / 2, dy + 25, 0xFFFFFF);
+            drawCenteredString(fontRendererObj, "\u00a77Clique em um jogador para ver os detalhes \u00a78| \u00a77role para ver mais", px + W / 2, dy + 22, 0xFFFFFF);
         } else {
             int sc = s.res.color();
-            head(s, px + 13, dy + 6, 24, sc);
-            drawString(fontRendererObj, "\u00a7l" + s.color + s.name, px + 44, dy + 6, 0xFFFFFF);
-            pill(s.res.pill(), sc, px + 52 + fontRendererObj.getStringWidth("\u00a7l" + s.name), dy + 5);
-            drawString(fontRendererObj, "\u00a77Suspeita", px + 44, dy + 18, 0xFFFFFF);
-            drawRect(px + 92, dy + 19, px + 212, dy + 25, 0xFF2A2A3A);
-            drawRect(px + 92, dy + 19, px + 92 + 120 * s.res.score / 100, dy + 25, sc);
-            drawString(fontRendererObj, "\u00a7f" + s.res.score + "\u00a77/100", px + 218, dy + 18, 0xFFFFFF);
-            drawString(fontRendererObj, fontRendererObj.trimStringToWidth("\u00a77Motivos: \u00a7f" + s.res.reasons(), W - 60), px + 44, dy + 30, 0xFFFFFF);
+            head(s, px + 13, dy + 5, 22, sc);
+            drawString(fontRendererObj, "\u00a7l" + s.color + s.name, px + 42, dy + 4, 0xFFFFFF);
+            pill(s.res.pill(), sc, px + 50 + fontRendererObj.getStringWidth("\u00a7l" + s.name), dy + 3);
+            drawString(fontRendererObj, "\u00a77Suspeita", px + 42, dy + 15, 0xFFFFFF);
+            drawRect(px + 90, dy + 16, px + 210, dy + 22, 0xFF2A2A3A);
+            drawRect(px + 90, dy + 16, px + 90 + 120 * s.res.score / 100, dy + 22, sc);
+            drawString(fontRendererObj, "\u00a7f" + s.res.score + "\u00a77/100", px + 216, dy + 15, 0xFFFFFF);
+            drawString(fontRendererObj, fontRendererObj.trimStringToWidth("\u00a77Motivos: \u00a7f" + s.res.reasons(), W - 56), px + 42, dy + 26, 0xFFFFFF);
             String line;
             if (s.d != null && s.d.loaded && !s.d.notFound) {
                 StringBuilder sb = new StringBuilder();
@@ -146,10 +192,10 @@ public class StatsGui extends GuiScreen {
             } else {
                 line = "\u00a77Sem dados da API para este jogador.";
             }
-            drawString(fontRendererObj, fontRendererObj.trimStringToWidth(line, W - 60), px + 44, dy + 42, 0xFFFFFF);
+            drawString(fontRendererObj, fontRendererObj.trimStringToWidth(line, W - 56), px + 42, dy + 38, 0xFFFFFF);
         }
 
-        bMode.displayString = fontRendererObj.trimStringToWidth("Modo: " + m.name, 84);
+        bMode.displayString = fontRendererObj.trimStringToWidth("Modo: " + m.name, bMode.width - 8);
         bBl.enabled = bWatch.enabled = sel != null;
         bBl.displayString = sel != null && o.lists.has(true, sel) ? "- Blacklist" : "+ Blacklist";
         bWatch.displayString = sel != null && o.lists.has(false, sel) ? "- Interesse" : "+ Interesse";
@@ -164,6 +210,7 @@ public class StatsGui extends GuiScreen {
         else if (b.id == 1 && s != null) o.lists.toggle(true, s.name);
         else if (b.id == 2 && s != null) o.lists.toggle(false, s.name);
         else if (b.id == 3) mc.displayGuiScreen(null);
+        else if (b.id == 4) mc.displayGuiScreen(new ThemeGui(this));
     }
 
     @Override
