@@ -144,7 +144,7 @@ public class Rows {
                 return Double.compare(b.sort, a.sort);
             }
         });
-        return o.cfg.teams ? groupByTeam(out, o) : out;
+      return o.cfg.teams && o.inMatchTeams ? groupByTeam(out, o) : out;
     }
 
     /** Em partida (2+ times com varios jogadores): agrupa por time, com cabecalho; seu time primeiro. */
