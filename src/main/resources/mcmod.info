@@ -1,0 +1,11 @@
+[
+{
+  "modid": "smkzoverlay",
+  "name": "SmkzOverlay",
+  "description": "Overlay de stats para o MushMC com suspeita de snipe, blacklist, alerta de winstreak e menu detalhado.",
+  "version": "1.0.0",
+  "mcversion": "1.8.9",
+  "authorList": [],
+  "dependencies": []
+}
+]
