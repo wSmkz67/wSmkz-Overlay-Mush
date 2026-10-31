@@ -42,6 +42,8 @@ public class Snipe {
         int seen = o.history.recent(lname, 3L * 3600000L);
         if (seen >= 3) r.add(50, "visto em " + seen + " partidas suas nas \u00faltimas 3h");
         else if (seen == 2) r.add(25, "visto em 2 partidas suas nas \u00faltimas 3h");
+        QuickBuy.Match qm = o.qb == null ? null : o.qb.matchFor(lname);
+        if (qm != null && qm.pct >= o.cfg.qbMin) r.add(40, "quickbuy " + qm.pct + "% igual \u00e0 de " + qm.central);
         if (d != null && d.loaded) {
             if (d.notFound) {
                 r.add(10, "nick: sem registro na API");

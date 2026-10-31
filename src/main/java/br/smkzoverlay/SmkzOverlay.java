@@ -36,6 +36,7 @@ public class SmkzOverlay {
     public Config cfg;
     public ListStore lists;
     public History history;
+    public QuickBuy qb;
     public ApiClient api;
 
     // Tudo abaixo s\u00f3 \u00e9 tocado na thread principal do jogo.
@@ -44,6 +45,7 @@ public class SmkzOverlay {
     public final Map<String, String> present = new LinkedHashMap<>();   // nick min\u00fasculo -> nick
     public final Set<String> seen = new HashSet<>();
     public final Set<String> alerted = new HashSet<>();
+    public boolean inMatchTeams;   // times de partida detectados neste mundo
     public final Set<String> npcs = new HashSet<>();   // NPCs detectados nesta partida
     public String modeOverride;
     public boolean openMenu, openTheme;
@@ -62,7 +64,12 @@ public class SmkzOverlay {
         d.mkdirs();
         cfg = Config.load(new File(d, "config.json"));
         lists = new ListStore(new File(d, "lists.json"));
+        if (lists.importedVer < 1) {   // primeira vez: carrega a lista inicial de snipers
+            lists.importBlack(ListStore.readBundled(), "sniper (lista inicial)");
+            lists.markImported(1);
+        }
         history = new History(new File(d, "history.json"));
+        qb = new QuickBuy(new File(d, "quickbuy.json"));
         api = new ApiClient();
         keyMenu = new KeyBinding("Abrir menu", Keyboard.KEY_APOSTROPHE, "SmkzOverlay");
         keyHud = new KeyBinding("Ligar/desligar HUD", Keyboard.KEY_NONE, "SmkzOverlay");
@@ -199,6 +206,25 @@ public class SmkzOverlay {
         if (tick % 10 == 0) scan();
     }
 
+    /** Alerta no chat: quickbuy igual (ou quase) a de um sniper conhecido. */
+    public void qbAlert(String l, String n, QuickBuy.Match m) {
+        if (!present.containsKey(l)) return;
+        alert(l, "qb", "\u00a7c\u00a7lQUICKBUY \u00a7f" + n + " \u00a77tem \u00a7e" + m.pct + "% \u00a77igual \u00e0 de \u00a7c" + m.central, "note.bass", 0.7f);
+    }
+
+    /** Mostra time e prefixo de cada jogador na tab (para conferir/ajustar a separacao por times). */
+    public void debugTeams() {
+        int n = 0;
+        for (Map.Entry<String, String> en : present.entrySet()) {
+            if (n++ >= 20) { msg("\u00a77..."); break; }
+            NetworkPlayerInfo i = mc.getNetHandler() == null ? null : mc.getNetHandler().getPlayerInfo(en.getValue());
+            ScorePlayerTeam t = i == null ? null : i.getPlayerTeam();
+            msg("\u00a7f" + en.getValue() + " \u00a77time=\u00a7f" + (t == null ? "-" : t.getRegisteredName())
+                    + " \u00a77prefixo=\u00a7f" + (t == null ? "-" : t.getColorPrefix().replace('\u00a7', '&')));
+        }
+        if (n == 0) msg("\u00a77Nenhum jogador na lista.");
+    }
+
     /** A API nao conhece o nome e o ping na tab e 0: tipico de NPC (um nicked de verdade tem ping). */
     private boolean looksLikeNpc(String l, String n) {
         PlayerData d = cache.get(l);
@@ -227,6 +253,7 @@ public class SmkzOverlay {
                     || now - d.fetched > cfg.cacheMinutes * 60000L
                     || (d.failed && now - d.fetched > 15000L);
             if (refetch && pending.add(l)) api.enqueue(n);
+            if (cfg.qb && qb.hasCentrals() && curMode().apiKey.equals("bedwars") && qb.want(l)) qb.request(n);
         }
     }
 
@@ -240,7 +267,8 @@ public class SmkzOverlay {
     public void onWorld(WorldEvent.Load e) {
         if (!e.world.isRemote) return;
         history.commit(seen);
-        seen.clear(); alerted.clear(); present.clear(); pending.clear(); npcs.clear();
+        seen.clear(); alerted.clear(); present.clear(); pending.clear(); npcs.clear(); inMatchTeams = false;
+        if (qb != null) qb.resetSession();
         if (api != null) api.clear();
     }
 
