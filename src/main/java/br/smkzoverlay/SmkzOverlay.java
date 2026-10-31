@@ -169,10 +169,12 @@ public class SmkzOverlay {
                 mc.addScheduledTask(new Runnable() {
                     public void run() {
                         if (d.root == null) { msg("\u00a7cSem JSON utiliz\u00e1vel (" + (d.error == null ? "nick n\u00e3o encontrado?" : d.error) + "). Confira apiUrl no config.json."); return; }
-                        msg("\u00a77Chaves do topo: \u00a7f" + Json.keys(d.root));
+                        msg("\u00a77Chaves do topo: \u00a7f" + Json.keys(d.root, 60));
+                        Set<String> done = new HashSet<>();
                         for (Config.Mode m : cfg.modes) {
+                            if (!done.add(m.apiKey)) continue;
                             JsonElement e = Json.find(d.root, m.apiKey, true);
-                            msg("\u00a77" + m.id + ": " + (e == null ? "\u00a7cobjeto '" + m.apiKey + "' n\u00e3o encontrado" : "\u00a7a" + Json.keys(e)));
+                            msg("\u00a77" + m.id + ": " + (e == null ? "\u00a7cobjeto '" + m.apiKey + "' n\u00e3o encontrado" : "\u00a7a" + Json.groups(e)));
                         }
                     }
                 });
@@ -230,36 +232,87 @@ public class SmkzOverlay {
         if (api != null) api.clear();
     }
 
+    private static int pillW(FontRenderer fr, String p) { return fr.getStringWidth("\u00a7l" + p) + 6; }
+
     @SubscribeEvent
     public void onRender(RenderGameOverlayEvent.Text e) {
         if (!cfg.hud || mc.theWorld == null || mc.currentScreen instanceof StatsGui) return;
         if (present.isEmpty() || present.size() > cfg.maxPlayers) return;
         Config.Mode m = curMode();
-        List<Rows.Row> rows = Rows.build(m);
+        List<Rows.Row> all = Rows.build(m);
+        int shown = Math.min(all.size(), cfg.maxRows);
+        if (shown == 0) return;
         FontRenderer fr = mc.fontRendererObj;
-        int shown = Math.min(rows.size(), cfg.maxRows);
-        String title = "\u00a7b\u00a7lSmkz\u00a7d\u00a7lOverlay \u00a78| \u00a77" + m.name;
-        int w = fr.getStringWidth(title);
-        List<String> lines = new ArrayList<>();
+        int nc = m.cols.size();
+
+        // larguras das colunas (calculadas pelo maior valor de cada uma)
+        int nameW = fr.getStringWidth("JOGADOR"), pw = 0;
+        int[] cw = new int[nc];
+        for (int c = 0; c < nc; c++) cw[c] = fr.getStringWidth(m.cols.get(c).label.toUpperCase());
+        String[][] cells = new String[shown][nc];
         for (int i = 0; i < shown; i++) {
-            String l = Rows.hudLine(rows.get(i), m);
-            lines.add(l);
-            w = Math.max(w, fr.getStringWidth(l) + 4);
+            Rows.Row r = all.get(i);
+            nameW = Math.max(nameW, fr.getStringWidth(r.name));
+            String p = r.res.pill();
+            if (!p.isEmpty()) pw = Math.max(pw, pillW(fr, p));
+            for (int c = 0; c < nc; c++) {
+                cells[i][c] = Rows.colText(r.d, m, m.cols.get(c));
+                cw[c] = Math.max(cw[c], fr.getStringWidth(cells[i][c]));
+            }
         }
-        int x = cfg.hudX, y = cfg.hudY, h = 15 + shown * 11 + 2;
+        int x0 = cfg.hudX, y0 = cfg.hudY;
+        int nameX = x0 + 16, tagX = nameX + nameW + 4;
+        int statX = tagX + (pw > 0 ? pw + 4 : 0) + 4;
+        int total = 0;
+        for (int c = 0; c < nc; c++) total += cw[c] + (c > 0 ? 9 : 0);
+        int W = Math.max(statX - x0 + total + 6, fr.getStringWidth("Smkz Overlay") + fr.getStringWidth(m.name) + 20);
+        int H = 14 + 11 + shown * 11 + 3;
+
         GlStateManager.pushMatrix();
-        GlStateManager.scale(0.85f, 0.85f, 1f);
-        Gui.drawRect(x - 3, y - 3, x + w + 5, y + h, 0xA0101020);
-        Gui.drawRect(x - 3, y - 3, x + w + 5, y - 1, 0xFF8B5CF6);
-        Gui.drawRect(x - 3, y - 1, x + w + 5, y + 11, 0xB0241B4D);
-        Gui.drawRect(x - 3, y + 11, x + w + 5, y + 12, 0xFF22D3EE);
-        fr.drawStringWithShadow(title, x + 2, y + 1, 0xFFFFFF);
-        int ly = y + 15;
-        for (int i = 0; i < shown; i++) {
-            Gui.drawRect(x - 3, ly - 1, x - 1, ly + 9, rows.get(i).res.color());
-            fr.drawStringWithShadow(lines.get(i), x + 2, ly, 0xFFFFFF);
-            ly += 11;
+        GlStateManager.scale(cfg.hudScale, cfg.hudScale, 1f);
+        // fundo + barra de titulo
+        Gui.drawRect(x0, y0, x0 + W, y0 + H, 0xB8101018);
+        Gui.drawRect(x0, y0, x0 + W / 2, y0 + 2, 0xFF8B5CF6);
+        Gui.drawRect(x0 + W / 2, y0, x0 + W, y0 + 2, 0xFF22D3EE);
+        Gui.drawRect(x0, y0 + 2, x0 + W, y0 + 14, 0xC0241B4D);
+        fr.drawStringWithShadow("\u00a7b\u00a7lSmkz\u00a7d\u00a7lOverlay", x0 + 5, y0 + 4, 0xFFFFFF);
+        fr.drawStringWithShadow("\u00a73" + m.name, x0 + W - 5 - fr.getStringWidth(m.name), y0 + 4, 0xFFFFFF);
+
+        // cabecalho das colunas
+        int hy = y0 + 14;
+        Gui.drawRect(x0, hy, x0 + W, hy + 11, 0x50000000);
+        fr.drawString("\u00a78JOGADOR", nameX, hy + 2, 0xFFFFFF);
+        int cx = statX;
+        for (int c = 0; c < nc; c++) {
+            String lb = m.cols.get(c).label.toUpperCase();
+            fr.drawString("\u00a77" + lb, cx + cw[c] - fr.getStringWidth(lb), hy + 2, 0xFFFFFF);
+            cx += cw[c] + 9;
         }
+
+        // linhas
+        for (int i = 0; i < shown; i++) {
+            Rows.Row r = all.get(i);
+            int y = hy + 11 + i * 11;
+            if (i % 2 == 1) Gui.drawRect(x0, y, x0 + W, y + 11, 0x16FFFFFF);
+            Gui.drawRect(x0, y, x0 + 2, y + 11, r.res.color());
+            if (r.info != null) {
+                mc.getTextureManager().bindTexture(r.info.getLocationSkin());
+                GlStateManager.color(1f, 1f, 1f, 1f);
+                Gui.drawScaledCustomSizeModalRect(x0 + 5, y + 1, 8, 8, 8, 8, 9, 9, 64, 64);
+            }
+            fr.drawStringWithShadow(r.color + r.name, nameX, y + 2, 0xFFFFFF);
+            String p = r.res.pill();
+            if (!p.isEmpty()) {
+                Gui.drawRect(tagX, y + 1, tagX + pillW(fr, p), y + 10, r.res.color());
+                fr.drawString("\u00a7f\u00a7l" + p, tagX + 3, y + 2, 0xFFFFFF);
+            }
+            cx = statX;
+            for (int c = 0; c < nc; c++) {
+                fr.drawStringWithShadow(cells[i][c], cx + cw[c] - fr.getStringWidth(cells[i][c]), y + 2, 0xFFFFFF);
+                cx += cw[c] + 9;
+            }
+        }
+        Gui.drawRect(x0, y0 + H - 1, x0 + W, y0 + H, 0xFF22D3EE);
         GlStateManager.popMatrix();
     }
 }

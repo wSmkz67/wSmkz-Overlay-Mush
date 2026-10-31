@@ -36,11 +36,48 @@ public class Json {
         return v < 1e11 ? (long) (v * 1000) : (long) v;
     }
 
+    public static String groups(JsonElement e) {
+        if (e == null || !e.isJsonObject()) return "-";
+        Map<String, Integer> g = new LinkedHashMap<>();
+        int total = 0;
+        for (Map.Entry<String, JsonElement> en : e.getAsJsonObject().entrySet()) {
+            String k = en.getKey();
+            int i = k.indexOf('_');
+            String p = i > 0 ? k.substring(0, i) : k;
+            Integer c = g.get(p);
+            g.put(p, c == null ? 1 : c + 1);
+            total++;
+        }
+        List<Map.Entry<String, Integer>> l = new ArrayList<>(g.entrySet());
+        Collections.sort(l, new Comparator<Map.Entry<String, Integer>>() {
+            public int compare(Map.Entry<String, Integer> a, Map.Entry<String, Integer> b) { return b.getValue() - a.getValue(); }
+        });
+        StringBuilder sb = new StringBuilder(total + " chaves; grupos: ");
+        int n = 0;
+        for (Map.Entry<String, Integer> en : l) {
+            if (n++ >= 24) break;
+            sb.append(en.getKey()).append('(').append(en.getValue()).append(") ");
+        }
+        return sb.toString();
+    }
+
+    public static String keys(JsonElement e, int limit) {
+        if (e == null || !e.isJsonObject()) return "-";
+        StringBuilder sb = new StringBuilder();
+        int n = 0;
+        for (Map.Entry<String, JsonElement> en : e.getAsJsonObject().entrySet()) {
+            if (n++ > 0) sb.append(", ");
+            sb.append(en.getKey());
+            if (n >= limit) { sb.append("..."); break; }
+        }
+        return sb.toString();
+    }
+
     public static String keys(JsonElement e) {
         if (e == null || !e.isJsonObject()) return "-";
         StringBuilder sb = new StringBuilder();
         int n = 0;
-   for (Map.Entry<String, JsonElement> en : e.getAsJsonObject().entrySet()) { if (n++ > 0) sb.append(", "); sb.append(en.getKey()); if (n >= 18) { sb.append("..."); break; } }
+        for (Map.Entry<String, JsonElement> en : e.getAsJsonObject().entrySet()) { if (n++ > 0) sb.append(", "); sb.append(en.getKey()); if (n >= 18) { sb.append("..."); break; } }
         return sb.toString();
     }
 }

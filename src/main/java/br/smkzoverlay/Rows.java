@@ -14,8 +14,8 @@ public class Rows {
     }
 
     public static double value(PlayerData d, Config.Mode m, Config.Col c) {
-        double a = d.stat(m, c.key);
-        return c.ratio() ? a / Math.max(1, d.stat(m, c.per)) : a;
+        double a = d.stat(m, c.key, c.global);
+        return c.ratio() ? a / Math.max(1, d.stat(m, c.per, c.global)) : a;
     }
 
     public static String color(double v, Config.Col c) {

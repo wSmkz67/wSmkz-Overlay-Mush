@@ -2,6 +2,7 @@ package br.smkzoverlay;
 
 import com.google.gson.*;
 import java.util.*;
+import java.util.regex.Pattern;
 
 public class PlayerData {
     public final String name;
@@ -40,13 +41,24 @@ public class PlayerData {
 
     public boolean hasMode(Config.Mode m) { return root != null && modeObj(m) != null; }
 
-    public double stat(Config.Mode m, String key) {
+    public double stat(Config.Mode m, String key) { return stat(m, key, false); }
+
+    /** verbatim = usa a chave exatamente como esta, sem prefixo/sufixo do modo. */
+    public double stat(Config.Mode m, String key, boolean verbatim) {
         if (root == null || key == null || key.isEmpty()) return 0;
-        String k = m.id + "." + key;
+        String k = m.id + "." + key + (verbatim ? "!" : "");
         Double c = memo.get(k);
         if (c != null) return c;
         JsonObject mo = modeObj(m);
-        double v = mo == null ? 0 : Json.num(Json.find(mo, key, false));
+        double v = 0;
+        if (mo != null) {
+            String name = key;
+            if (!verbatim) {
+                if (m.prefix != null && !m.prefix.isEmpty()) name = m.prefix + "_" + name;
+                if (m.suffix != null && !m.suffix.isEmpty()) name = name + "_" + m.suffix;
+            }
+            v = Json.num(Json.find(mo, name, false));
+        }
         memo.put(k, v);
         return v;
     }
