@@ -64,10 +64,6 @@ public class SmkzOverlay {
         d.mkdirs();
         cfg = Config.load(new File(d, "config.json"));
         lists = new ListStore(new File(d, "lists.json"));
-        if (lists.importedVer < 1) {   // primeira vez: carrega a lista inicial de snipers
-            lists.importBlack(ListStore.readBundled(), "sniper (lista inicial)");
-            lists.markImported(1);
-        }
         history = new History(new File(d, "history.json"));
         qb = new QuickBuy(new File(d, "quickbuy.json"));
         api = new ApiClient();
