@@ -9,6 +9,7 @@ import net.minecraft.client.gui.Gui;
 import net.minecraft.client.network.NetworkPlayerInfo;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.settings.KeyBinding;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.scoreboard.Score;
 import net.minecraft.scoreboard.ScoreObjective;
 import net.minecraft.scoreboard.ScorePlayerTeam;
@@ -46,7 +47,11 @@ public class SmkzOverlay {
     public final Set<String> seen = new HashSet<>();
     public final Set<String> alerted = new HashSet<>();
     public boolean inMatchTeams;   // times de partida detectados neste mundo
-    public final Set<String> npcs = new HashSet<>();   // NPCs detectados nesta partida
+    public final Set<String> npcs = new HashSet<>();
+    public final Map<String, Character> teamOf = new HashMap<>();   // time (cor) ja identificado de cada jogador
+    private List<Rows.Row> rowsCache;
+    private Config.Mode rowsMode;
+    private long rowsAt;   // NPCs detectados nesta partida
     public String modeOverride;
     public boolean openMenu, openTheme;
     private Config.Mode detected;
@@ -64,6 +69,10 @@ public class SmkzOverlay {
         d.mkdirs();
         cfg = Config.load(new File(d, "config.json"));
         lists = new ListStore(new File(d, "lists.json"));
+        if (lists.importedVer < 1) {   // primeira vez: carrega a lista inicial de snipers
+            lists.importBlack(ListStore.readBundled(), "sniper (lista inicial)");
+            lists.markImported(1);
+        }
         history = new History(new File(d, "history.json"));
         qb = new QuickBuy(new File(d, "quickbuy.json"));
         api = new ApiClient();
@@ -208,6 +217,23 @@ public class SmkzOverlay {
         alert(l, "qb", "\u00a7c\u00a7lQUICKBUY \u00a7f" + n + " \u00a77tem \u00a7e" + m.pct + "% \u00a77igual \u00e0 de \u00a7c" + m.central, "note.bass", 0.7f);
     }
 
+    private String armorName(String lname) {
+        for (EntityPlayer p : mc.theWorld.playerEntities)
+            if (p.getName().equalsIgnoreCase(lname)) { char c = Rows.armorChar(p); return c == 0 ? "-" : Utils.colorName(c); }
+        return "fora de alcance";
+    }
+
+    /** Linhas montadas, em cache por 250 ms (HUD e menu reutilizam em vez de refazer a cada frame). */
+    public List<Rows.Row> rows(Config.Mode m) {
+        long now = System.currentTimeMillis();
+        if (rowsCache == null || rowsMode != m || now - rowsAt > 250) {
+            rowsCache = Rows.build(m);
+            rowsMode = m;
+            rowsAt = now;
+        }
+        return rowsCache;
+    }
+
     /** Mostra time e prefixo de cada jogador na tab (para conferir/ajustar a separacao por times). */
     public void debugTeams() {
         int n = 0;
@@ -216,7 +242,8 @@ public class SmkzOverlay {
             NetworkPlayerInfo i = mc.getNetHandler() == null ? null : mc.getNetHandler().getPlayerInfo(en.getValue());
             ScorePlayerTeam t = i == null ? null : i.getPlayerTeam();
             msg("\u00a7f" + en.getValue() + " \u00a77time=\u00a7f" + (t == null ? "-" : t.getRegisteredName())
-                    + " \u00a77prefixo=\u00a7f" + (t == null ? "-" : t.getColorPrefix().replace('\u00a7', '&')));
+                    + " \u00a77prefixo=\u00a7f" + (t == null ? "-" : t.getColorPrefix().replace('\u00a7', '&'))
+                    + " \u00a77armadura=\u00a7f" + armorName(en.getKey()));
         }
         if (n == 0) msg("\u00a77Nenhum jogador na lista.");
     }
@@ -263,7 +290,7 @@ public class SmkzOverlay {
     public void onWorld(WorldEvent.Load e) {
         if (!e.world.isRemote) return;
         history.commit(seen);
-        seen.clear(); alerted.clear(); present.clear(); pending.clear(); npcs.clear(); inMatchTeams = false;
+        seen.clear(); alerted.clear(); present.clear(); pending.clear(); npcs.clear(); inMatchTeams = false; teamOf.clear(); rowsCache = null;
         if (qb != null) qb.resetSession();
         if (api != null) api.clear();
     }
@@ -272,10 +299,11 @@ public class SmkzOverlay {
 
     @SubscribeEvent
     public void onRender(RenderGameOverlayEvent.Text e) {
-        if (!cfg.hud || mc.theWorld == null || mc.currentScreen instanceof StatsGui || mc.currentScreen instanceof ThemeGui) return;
+        if (!cfg.hud || mc.theWorld == null || mc.gameSettings.showDebugInfo) return;
+        if (mc.currentScreen instanceof StatsGui || mc.currentScreen instanceof ThemeGui) return;
         if (present.isEmpty() || present.size() > cfg.maxPlayers) return;
         Config.Mode m = curMode();
-        List<Rows.Row> all = Rows.build(m);
+        List<Rows.Row> all = rows(m);
         boolean teamMode = false;
         for (Rows.Row r : all) if (r.header) { teamMode = true; break; }
         int shown = Math.min(all.size(), teamMode ? 60 : cfg.maxRows);   // em modo times mostra todos
@@ -287,20 +315,13 @@ public class SmkzOverlay {
         int nameW = fr.getStringWidth("JOGADOR"), pw = 0, hdrW = 0;
         int[] cw = new int[nc];
         for (int c = 0; c < nc; c++) cw[c] = fr.getStringWidth(m.cols.get(c).label.toUpperCase());
-        String[][] cells = new String[shown][nc];
-        int[][] bgs = new int[shown][nc];
         for (int i = 0; i < shown; i++) {
             Rows.Row r = all.get(i);
             if (r.header) { hdrW = Math.max(hdrW, fr.getStringWidth(r.headerText)); continue; }
-            nameW = Math.max(nameW, fr.getStringWidth(r.nameStr()));
+            nameW = Math.max(nameW, r.nameW);
             String p = r.pill();
             if (!p.isEmpty()) pw = Math.max(pw, pillW(fr, p));
-            for (int c = 0; c < nc; c++) {
-                Config.Col col = m.cols.get(c);
-                cells[i][c] = Rows.colText(r.d, m, col);
-                bgs[i][c] = Rows.cellBg(r.d, m, col);
-                cw[c] = Math.max(cw[c], fr.getStringWidth(cells[i][c]));
-            }
+            for (int c = 0; c < nc; c++) cw[c] = Math.max(cw[c], r.cellW[c]);
         }
         int x0 = cfg.hudX, y0 = cfg.hudY;
         int nameX = x0 + 16, tagX = nameX + nameW + 4;
@@ -354,9 +375,9 @@ public class SmkzOverlay {
             }
             cx = statX;
             for (int c = 0; c < nc; c++) {
-                int right = cx + cw[c], tw = fr.getStringWidth(cells[i][c]);
-                if (bgs[i][c] != 0) Gui.drawRect(right - tw - 2, y, right + 2, y + 11, bgs[i][c]);
-                fr.drawStringWithShadow(cells[i][c], right - tw, y + 2, 0xFFFFFF);
+                int right = cx + cw[c], tw = r.cellW[c];
+                if (r.bgs[c] != 0) Gui.drawRect(right - tw - 2, y, right + 2, y + 11, r.bgs[c]);
+                fr.drawStringWithShadow(r.cells[c], right - tw, y + 2, 0xFFFFFF);
                 cx += cw[c] + 9;
             }
         }

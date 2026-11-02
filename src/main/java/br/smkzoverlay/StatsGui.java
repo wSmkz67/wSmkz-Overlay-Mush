@@ -123,7 +123,7 @@ public class StatsGui extends GuiScreen {
         drawGradientRect(0, 0, width, height, 0xC0080810, 0xD01A0C30);
         SmkzOverlay o = SmkzOverlay.I;
         Config.Mode m = o.curMode();
-        rows = Rows.build(m);
+        rows = o.rows(m);
         int vis = vis();
         scroll = Math.max(0, Math.min(scroll, Math.max(0, rows.size() - vis)));
 
@@ -171,9 +171,9 @@ public class StatsGui extends GuiScreen {
             drawString(fontRendererObj, r.nameStr(), px + 32, y + 4, 0xFFFFFF);
             pill(r.pill(), sc, px + pillX, y + 2);
             for (int c = 0; c < m.cols.size(); c++) {
-                String t = Rows.colText(r.d, m, m.cols.get(c));
-                int tw = fontRendererObj.getStringWidth(t), tx = colX(c) + cwid[c] - tw;
-                int bg = Rows.cellBg(r.d, m, m.cols.get(c));
+                String t = c < r.cells.length ? r.cells[c] : "";
+                int tw = c < r.cellW.length ? r.cellW[c] : 0, tx = colX(c) + cwid[c] - tw;
+                int bg = c < r.bgs.length ? r.bgs[c] : 0;
                 if (bg != 0) drawRect(tx - 2, y + 1, tx + tw + 2, y + RH - 2, bg);
                 drawString(fontRendererObj, t, tx, y + 4, 0xFFFFFF);
             }
