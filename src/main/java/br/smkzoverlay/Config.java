@@ -37,7 +37,7 @@ public class Config {
      * prefix: campo = prefix_chave (ex: solo_wins). suffix: campo = chave_suffix (ex: wins_solo).
      */
     public static class Mode {
-        public String id, name, apiKey, sub = "", prefix = "", suffix = "", wsKey = "winstreak", winsKey = "wins", lossesKey = "losses";
+        public String id, name, apiKey, sub = "", prefix = "", suffix = "", basePrefix = "", baseSuffix = "", wsKey = "winstreak", winsKey = "wins", lossesKey = "losses";
         public int wsAlert = 15, sortCol = 1;
         public List<String> keywords = new ArrayList<>();
         public List<String> variants = new ArrayList<>(); // se preenchido, precisa aparecer no scoreboard
@@ -46,7 +46,7 @@ public class Config {
 
     private static Mode mode(String id, String name, String apiKey, String prefix, String suffix, int wsAlert, String[] kw, Col... cols) {
         Mode m = new Mode();
-        m.id = id; m.name = name; m.apiKey = apiKey; m.prefix = prefix; m.suffix = suffix; m.wsAlert = wsAlert;
+        m.id = id; m.name = name; m.apiKey = apiKey; m.prefix = prefix; m.suffix = suffix; m.basePrefix = prefix; m.baseSuffix = suffix; m.wsAlert = wsAlert;
         m.keywords = new ArrayList<>(Arrays.asList(kw));
         m.cols = new ArrayList<>(Arrays.asList(cols));
         return m;
@@ -54,7 +54,7 @@ public class Config {
 
     private static Mode variant(Mode base, String id, String name, String prefix, String suffix, String... variants) {
         Mode m = new Mode();
-        m.id = id; m.name = name; m.apiKey = base.apiKey; m.prefix = prefix; m.suffix = suffix;
+        m.id = id; m.name = name; m.apiKey = base.apiKey; m.prefix = prefix; m.suffix = suffix; m.basePrefix = base.prefix; m.baseSuffix = base.suffix;
         m.wsAlert = base.wsAlert; m.sortCol = base.sortCol;
         m.keywords = new ArrayList<>(base.keywords);
         m.variants = new ArrayList<>(Arrays.asList(variants));
@@ -148,7 +148,7 @@ public class Config {
             }
         } catch (Exception e) { e.printStackTrace(); }
         if (c == null) c = new Config();
-        if (c.version < 4) { c.modes = new ArrayList<>(); c.version = 4; } // formato novo: redefine os modos
+        if (c.version < 5) { c.modes = new ArrayList<>(); c.version = 5; } // formato novo: redefine os modos
         if (c.modes == null) c.modes = new ArrayList<>();
         for (Mode d : defaults()) if (c.find(d.id) == null) c.modes.add(d);
         for (Mode m : c.modes) {
@@ -156,6 +156,8 @@ public class Config {
             if (m.sub == null) m.sub = "";
             if (m.prefix == null) m.prefix = "";
             if (m.suffix == null) m.suffix = "";
+            if (m.basePrefix == null) m.basePrefix = "";
+            if (m.baseSuffix == null) m.baseSuffix = "";
         }
         c.file = f;
         c.save();
