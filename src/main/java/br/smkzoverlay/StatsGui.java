@@ -27,7 +27,8 @@ public class StatsGui extends GuiScreen {
         cwid = new int[nc];
         int sum = 0;
         for (int c = 0; c < nc; c++) {
-            cwid[c] = Math.max(fontRendererObj.getStringWidth(m.cols.get(c).label.toUpperCase()), 26);
+            cwid[c] = Math.max(fontRendererObj.getStringWidth(Rows.label(m, m.cols.get(c))), 26);
+            for (Rows.Row r : SmkzOverlay.I.rows(m)) if (!r.header && r.cellW != null && c < r.cellW.length) cwid[c] = Math.max(cwid[c], r.cellW[c]);
             sum += cwid[c];
         }
         pad = 12;
@@ -141,7 +142,7 @@ public class StatsGui extends GuiScreen {
         drawRect(px + 6, py + 33, px + W - 6, py + 45, 0x55000000);
         drawString(fontRendererObj, "JOGADOR", px + 32, py + 36, Theme.a2());
         for (int c = 0; c < m.cols.size(); c++) {
-            String lb = m.cols.get(c).label.toUpperCase();
+            String lb = Rows.label(m, m.cols.get(c));
             drawString(fontRendererObj, lb, colX(c) + cwid[c] - fontRendererObj.getStringWidth(lb), py + 36, Theme.a2());
         }
 
@@ -205,7 +206,7 @@ public class StatsGui extends GuiScreen {
                 StringBuilder sb = new StringBuilder();
                 String first = s.d.firstLogin > 0 ? new SimpleDateFormat("dd/MM/yy").format(new Date(s.d.firstLogin)) : "?";
                 sb.append("\u00a77Entrou: \u00a7f").append(first).append("  \u00a77Visto 24h: \u00a7f").append(o.history.recent(s.lname, 86400000L)).append("  ");
-                for (Config.Col c : m.cols) sb.append("\u00a77").append(c.label).append(' ').append(Rows.colText(s.d, m, c)).append("  ");
+                for (Config.Col c : m.cols) sb.append("\u00a77").append(Rows.label(m, c)).append(' ').append(Rows.colText(s.d, m, c)).append("  ");
                 line = sb.toString();
             } else {
                 line = "\u00a77Sem dados da API para este jogador.";

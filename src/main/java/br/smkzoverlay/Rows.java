@@ -99,6 +99,17 @@ public class Rows {
         return "\u00a78";
     }
 
+    /** Em variacoes (trios, duplas...) o WS mostra o geral e o do modo: 50/30. */
+    public static boolean dualWs(Config.Mode m) {
+        return !m.prefix.equals(m.basePrefix) || !m.suffix.equals(m.baseSuffix);
+    }
+
+    /** Titulo da coluna (WS vira "WS G/M" quando mostra geral/modo). */
+    public static String label(Config.Mode m, Config.Col c) {
+        String l = c.label.toUpperCase();
+        return "ws".equals(kind(c)) && dualWs(m) ? l + " G/M" : l;
+    }
+
     public static String colText(PlayerData d, Config.Mode m, Config.Col c) {
         if (d == null) return "\u00a77...";
         if (d.failed) return "\u00a7cerro";
@@ -110,7 +121,13 @@ public class Rows {
             return f != null ? f.replace('&', '\u00a7') : "\u00a7f" + Utils.fmt(v, false);
         }
         if (k.equals("fkdr")) return fkdrPrefix(v, levelChar(d, m)) + Utils.fmt(v, true);
-        if (k.equals("ws")) return wsPrefix(v) + Utils.fmt(v, false);
+        if (k.equals("ws")) {
+            if (dualWs(m)) {
+                double g = d.statGeneral(m, c.key);
+                return wsPrefix(g) + Utils.fmt(g, false) + "\u00a78/" + wsPrefix(v) + Utils.fmt(v, false);
+            }
+            return wsPrefix(v) + Utils.fmt(v, false);
+        }
         return color(v, c) + Utils.fmt(v, c.ratio());
     }
 
@@ -120,6 +137,7 @@ public class Rows {
         String k = kind(c);
         if (k.isEmpty() || k.equals("level")) return 0;
         double v = value(d, m, c);
+        if (k.equals("ws") && dualWs(m)) v = Math.max(v, d.statGeneral(m, c.key));
         if (k.equals("fkdr")) return v >= FKDR_VERY ? 0x77D946EF : v >= FKDR_HIGH ? 0x44D946EF : 0;
         return v >= WS_VERY ? 0x66EF4444 : v >= WS_HIGH ? 0x33F59E0B : 0;
     }

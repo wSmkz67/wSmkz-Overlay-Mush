@@ -158,7 +158,8 @@ public class SmkzOverlay {
         Config.Mode m = curMode();
         if (!d.notFound && m.wsAlert > 0) {
             double ws = d.stat(m, m.wsKey);
-            if (ws >= m.wsAlert) alert(l, "ws:" + m.id, "\u00a76WINSTREAK \u00a7f" + n + " \u00a77(" + m.name + "): \u00a7e" + (int) ws, "note.pling", 2.0f);
+            if (ws >= m.wsAlert) alert(l, "ws:" + m.id, "\u00a76WINSTREAK \u00a7f" + n + " \u00a77(" + m.name + "): \u00a7e" + (int) ws
+                + (Rows.dualWs(m) ? " \u00a77(geral \u00a7e" + (int) d.statGeneral(m, m.wsKey) + "\u00a77)" : ""), "note.pling", 2.0f);
         }
         if (!lists.has(true, l)) {
             Snipe.Res r = Snipe.analyze(l, d, m);
@@ -314,7 +315,7 @@ public class SmkzOverlay {
 
         int nameW = fr.getStringWidth("JOGADOR"), pw = 0, hdrW = 0;
         int[] cw = new int[nc];
-        for (int c = 0; c < nc; c++) cw[c] = fr.getStringWidth(m.cols.get(c).label.toUpperCase());
+        for (int c = 0; c < nc; c++) cw[c] = fr.getStringWidth(Rows.label(m, m.cols.get(c)));
         for (int i = 0; i < shown; i++) {
             Rows.Row r = all.get(i);
             if (r.header) { hdrW = Math.max(hdrW, fr.getStringWidth(r.headerText)); continue; }
@@ -345,7 +346,7 @@ public class SmkzOverlay {
         fr.drawString("\u00a78JOGADOR", nameX, hy + 2, 0xFFFFFF);
         int cx = statX;
         for (int c = 0; c < nc; c++) {
-            String lb = m.cols.get(c).label.toUpperCase();
+            String lb = Rows.label(m, m.cols.get(c));
             fr.drawString("\u00a77" + lb, cx + cw[c] - fr.getStringWidth(lb), hy + 2, 0xFFFFFF);
             cx += cw[c] + 9;
         }

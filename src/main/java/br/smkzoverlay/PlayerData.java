@@ -63,9 +63,14 @@ public class PlayerData {
     public double stat(Config.Mode m, String key) { return stat(m, key, false); }
 
     /** verbatim = usa a chave exatamente como esta, sem prefixo/sufixo do modo. */
-    public double stat(Config.Mode m, String key, boolean verbatim) {
+    public double stat(Config.Mode m, String key, boolean verbatim) { return statOf(m, key, verbatim, m.prefix, m.suffix, ""); }
+
+    /** Mesma stat, mas do modo geral (ex: winstreak geral em vez do de trios). */
+    public double statGeneral(Config.Mode m, String key) { return statOf(m, key, false, m.basePrefix, m.baseSuffix, "#G"); }
+
+    private double statOf(Config.Mode m, String key, boolean verbatim, String prefix, String suffix, String tag) {
         if (root == null || key == null || key.isEmpty()) return 0;
-        String k = m.id + "." + key + (verbatim ? "!" : "");
+        String k = m.id + "." + key + (verbatim ? "!" : "") + tag;
         Double c = memo.get(k);
         if (c != null) return c;
         JsonObject mo = modeObj(m);
@@ -73,8 +78,8 @@ public class PlayerData {
         if (mo != null) {
             String name = key;
             if (!verbatim) {
-                if (m.prefix != null && !m.prefix.isEmpty()) name = m.prefix + "_" + name;
-                if (m.suffix != null && !m.suffix.isEmpty()) name = name + "_" + m.suffix;
+                if (prefix != null && !prefix.isEmpty()) name = prefix + "_" + name;
+                if (suffix != null && !suffix.isEmpty()) name = name + "_" + suffix;
             }
             v = Json.num(Json.find(mo, name, false));
         }
